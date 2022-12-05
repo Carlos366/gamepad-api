@@ -21,7 +21,7 @@ app.use(express.json());
 app.use('/auth', require('./routes/auth'));
 app.use('/lists', require('./routes/list'));
 app.get('/', (req, res) => {
-  res.send('App is running');
+  res.send(`Server Running on Port: http://localhost:${PORT}`);
 });
 
 const PORT = process.env.PORT || 5000;

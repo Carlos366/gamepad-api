@@ -5,7 +5,7 @@ const mongoose = require('mongoose');
 
 const HttpError = require('../models/http-error');
 const Favorite = require('../models/favorite');
-const User = require('../models/user');
+const User = require('../models/User');
 
 const getFavoriteById = async (req, res, next) => {
   const favoriteId = req.params.id;

@@ -1,31 +1,59 @@
+const fs = require('fs');
+const path = require('path');
+require('dotenv').config();
 const express = require('express');
+const bodyParser = require('body-parser');
 const mongoose = require('mongoose');
-const dotenv = require('dotenv');
-const cors = require('cors');
-
-dotenv.config();
-
-mongoose
-  .connect(process.env.CONNECTION_URL, {
-    useNewUrlParser: true,
-    useUnifiedTopology: true,
-  })
-  .then(() => console.log(`Server Running on Port: http://localhost:${PORT}`))
-  .catch((error) => console.log(`${error} did not connect`));
+const favRoutes = require('./routes/fav-routes');
+const usersRoutes = require('./routes/users-routes');
+const HttpError = require('./models/http-error');
 
 const app = express();
-app.use(cors());
 
-app.use(express.json());
+app.use(bodyParser.json());
 
-app.use('/auth', require('./routes/auth'));
-app.use('/lists', require('./routes/list'));
-app.get('/', (req, res) => {
-  res.send(`Server Running on Port: http://localhost:${PORT}`);
+app.use('/uploads/images', express.static(path.join('uploads', 'images')));
+
+app.use((req, res, next) => {
+  res.setHeader('Access-Control-Allow-Origin', '*');
+  res.setHeader(
+    'Access-Control-Allow-Headers',
+    'Origin, X-Requested-With, Content-Type, Accept, Authorization'
+  );
+  res.setHeader('Access-Control-Allow-Methods', 'GET, POST, PATCH, DELETE');
+
+  next();
 });
 
-const PORT = process.env.PORT || 5000;
+app.use('/favorites', favRoutes);
+app.use('/users', usersRoutes);
 
-app.listen(5000, () => {
-  console.log('Backend server is running!');
+app.use((req, res, next) => {
+  const error = new HttpError('Could not find this route.', 404);
+  throw error;
 });
+
+app.use((error, req, res, next) => {
+  if (req.file) {
+    fs.unlink(req.file.path, (err) => {
+      console.log(err);
+    });
+  }
+  if (res.headerSent) {
+    return next(error);
+  }
+  res.status(error.code || 500);
+  res.json({ message: error.message || 'An unknown error occurred!' });
+});
+
+mongoose
+  .connect(
+    `mongodb+srv://${process.env.MONGO_USER}:${process.env.MONGO_PASS}@gamepad.6hhqvzc.mongodb.net/?retryWrites=true&w=majority`
+  )
+  .then(() => {
+    app.listen(process.env.PORT || 5000);
+    console.log('Connected');
+  })
+  .catch((err) => {
+    console.log(err);
+  });
